@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PRICOMP — The Architecture of Power</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#08090a;
+  --deep:#0d0f12;
+  --panel:#111417;
+  --surface:#181c21;
+  --rim:#252b33;
+  --ice:#c8d4e0;
+  --mist:#7a8a99;
+  --ghost:#3a4550;
+  --platinum:#e8edf2;
+  --crimson:#c0392b;
+  --white:#f5f7fa;
+}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Mono',monospace;
+  background:var(--ink);
+  color:var(--platinum);
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* CURSOR */
+.cursor{position:fixed;width:10px;height:10px;background:var(--crimson);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width 0.3s,height 0.3s;}
+.cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(192,57,43,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width 0.3s,height 0.3s;}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:900;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;height:72px;background:rgba(8,9,10,0.95);border-bottom:1px solid var(--rim);backdrop-filter:blur(20px);}
+.nav-logo{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:6px;color:var(--white);text-decoration:none;}
+.nav-logo span{color:var(--crimson);}
+.nav-links{display:flex;gap:8px;list-style:none;}
+.nav-links li{position:relative;}
+.nav-links button{
+  font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:2px;
+  color:var(--mist);background:none;border:none;cursor:none;
+  text-transform:uppercase;padding:8px 16px;
+  transition:color 0.3s;border-radius:2px;
+}
+.nav-links button:hover,.nav-links button.active{color:var(--white);background:var(--surface);}
+.nav-btn{font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:2px;color:var(--white);border:1px solid var(--crimson);padding:9px 22px;text-decoration:none;text-transform:uppercase;transition:all 0.3s;background:transparent;}
+.nav-btn:hover{background:var(--crimson);}
+
+/* PAGES */
+.page{display:none;min-height:100vh;padding-top:72px;animation:pageIn 0.5s ease forwards;}
+.page.active{display:block;}
+@keyframes pageIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+/* ── HOME PAGE ── */
+.hero{
+  position:relative;height:calc(100vh - 72px);
+  display:flex;align-items:center;padding:0 10vw;
+  overflow:hidden;background:var(--ink);
+}
+
+/* GLOBE 3D SPHERE */
+.globe-wrap{
+  position:absolute;right:-80px;top:50%;
+  transform:translateY(-50%);
+  width:600px;height:600px;
+  pointer-events:none;
+}
+.globe{
+  width:100%;height:100%;
+  border-radius:50%;
+  position:relative;
+  animation:globeSpin 18s linear infinite;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(192,57,43,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 70% 65%, rgba(200,212,224,0.04) 0%, transparent 40%),
+    conic-gradient(
+      from 0deg,
+      rgba(37,43,51,0.9) 0deg,
+      rgba(24,28,33,0.7) 40deg,
+      rgba(192,57,43,0.15) 80deg,
+      rgba(37,43,51,0.9) 120deg,
+      rgba(17,20,23,0.6) 160deg,
+      rgba(192,57,43,0.08) 200deg,
+      rgba(37,43,51,0.95) 240deg,
+      rgba(24,28,33,0.7) 280deg,
+      rgba(192,57,43,0.12) 320deg,
+      rgba(37,43,51,0.9) 360deg
+    );
+  box-shadow:
+    inset -60px -20px 80px rgba(0,0,0,0.8),
+    inset 30px 20px 60px rgba(192,57,43,0.08),
+    0 0 120px rgba(192,57,43,0.08),
+    0 0 60px rgba(192,57,43,0.04);
+}
+/* Grid lines on globe */
+.globe::before{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent calc(100%/8 - 1px),
+      rgba(192,57,43,0.12) calc(100%/8 - 1px),
+      rgba(192,57,43,0.12) calc(100%/8)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent calc(100%/8 - 1px),
+      rgba(192,57,43,0.08) calc(100%/8 - 1px),
+      rgba(192,57,43,0.08) calc(100%/8)
+    );
+  border-radius:50%;
+  mask-image:radial-gradient(circle, white 80%, transparent 100%);
+  -webkit-mask-image:radial-gradient(circle, white 80%, transparent 100%);
+}
+/* Highlight */
+.globe::after{
+  content:'';position:absolute;
+  top:12%;left:18%;
+  width:38%;height:32%;
+  border-radius:50%;
+  background:radial-gradient(ellipse, rgba(200,212,224,0.12) 0%, transparent 70%);
+  transform:rotate(-30deg);
+}
+/* Floating circuit dots on the globe */
+.globe-dots{
+  position:absolute;inset:0;border-radius:50%;overflow:hidden;
+}
+.gdot{
+  position:absolute;border-radius:50%;
+  background:var(--crimson);
+  animation:gdotPulse 3s ease-in-out infinite;
+}
+@keyframes globeSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes gdotPulse{0%,100%{opacity:0.3;transform:scale(1);}50%{opacity:1;transform:scale(1.4);}}
+
+/* Globe orbit ring */
+.globe-ring{
+  position:absolute;top:50%;left:50%;
+  width:680px;height:680px;
+  margin-left:-340px;margin-top:-340px;
+  border-radius:50%;
+  border:1px solid rgba(192,57,43,0.1);
+  animation:ringSpin 25s linear infinite reverse;
+}
+.globe-ring::before{
+  content:'';position:absolute;
+  top:-4px;left:50%;
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--crimson);
+  opacity:0.7;
+  box-shadow:0 0 12px var(--crimson);
+}
+@keyframes ringSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+.globe-ring2{
+  position:absolute;top:50%;left:50%;
+  width:760px;height:760px;
+  margin-left:-380px;margin-top:-380px;
+  border-radius:50%;
+  border:1px solid rgba(200,212,224,0.04);
+  animation:ringSpin 40s linear infinite;
+}
+
+/* HERO CONTENT */
+.hero-content{position:relative;z-index:2;max-width:580px;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:5px;color:var(--crimson);text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;gap:14px;opacity:0;animation:fadeUp 0.9s 0.2s forwards;}
+.hero-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--crimson);}
+.hero-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(3.5rem,7vw,7.5rem);font-weight:300;line-height:0.95;letter-spacing:-2px;margin-bottom:28px;opacity:0;animation:fadeUp 1s 0.4s forwards;}
+/* WHITE TEXT ON RED BACKGROUND for headline words */
+.hero-h1 .hi-red{
+  background:var(--crimson);
+  color:var(--white) !important;
+  padding:0 8px;
+  font-style:normal;
+}
+.hero-h1 em{font-style:italic;color:var(--ice);}
+.hero-sub{font-family:'DM Mono',monospace;font-size:0.76rem;letter-spacing:0.5px;color:var(--mist);line-height:2;max-width:400px;margin-bottom:44px;opacity:0;animation:fadeUp 0.9s 0.6s forwards;}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;opacity:0;animation:fadeUp 0.9s 0.8s forwards;}
+.btn-red{font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:3px;color:var(--white);background:var(--crimson);padding:14px 36px;text-decoration:none;text-transform:uppercase;transition:all 0.3s;border:1px solid var(--crimson);display:inline-block;cursor:none;}
+.btn-red:hover{background:transparent;color:var(--crimson);}
+.btn-ghost{font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:3px;color:var(--ice);padding:14px 36px;text-decoration:none;text-transform:uppercase;border:1px solid var(--ghost);transition:all 0.3s;display:inline-block;cursor:none;}
+.btn-ghost:hover{border-color:var(--ice);}
+
+/* MARQUEE */
+.marquee-wrap{overflow:hidden;border-top:1px solid var(--rim);border-bottom:1px solid var(--rim);padding:22px 0;background:var(--deep);}
+.marquee-track{display:flex;gap:50px;align-items:center;white-space:nowrap;animation:marquee 22s linear infinite;width:max-content;}
+.marquee-item{font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:800;letter-spacing:5px;color:var(--ghost);text-transform:uppercase;}
+.marquee-dot{color:var(--crimson);}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ── PRODUCTS PAGE ── */
+.page-hero{padding:60px 8vw 40px;border-bottom:1px solid var(--rim);}
+.page-eyebrow{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:5px;color:var(--crimson);text-transform:uppercase;margin-bottom:12px;}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.5rem,5vw,4rem);font-weight:300;line-height:1;}
+/* WHITE ON RED highlight */
+.hi{background:var(--crimson);color:var(--white);padding:0 6px;}
+.page-title em{font-style:italic;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:8px;padding:24px 8vw;border-bottom:1px solid var(--rim);flex-wrap:wrap;background:var(--panel);}
+.filter-btn{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:2px;color:var(--mist);background:none;border:1px solid var(--rim);padding:7px 18px;cursor:none;text-transform:uppercase;transition:all 0.2s;}
+.filter-btn:hover,.filter-btn.active{border-color:var(--crimson);color:var(--white);background:rgba(192,57,43,0.1);}
+
+/* PRODUCT GRID */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2px;padding:2px;background:var(--rim);}
+.p-card{background:var(--panel);position:relative;overflow:hidden;transition:background 0.3s;cursor:none;}
+.p-card:hover{background:var(--surface);}
+.p-card-img{width:100%;aspect-ratio:4/3;object-fit:cover;filter:brightness(0.45) saturate(0.6);transition:filter 0.6s,transform 0.7s cubic-bezier(0.16,1,0.3,1);}
+.p-card:hover .p-card-img{filter:brightness(0.65) saturate(0.9);transform:scale(1.05);}
+.p-card-body{padding:28px 28px 32px;}
+.p-brand{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:var(--crimson);text-transform:uppercase;margin-bottom:8px;}
+.p-name{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;line-height:1.2;margin-bottom:8px;}
+.p-spec{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--mist);line-height:1.8;margin-bottom:20px;}
+.p-footer{display:flex;align-items:center;justify-content:space-between;}
+.p-price{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--white);}
+.p-old{font-size:0.7rem;color:var(--ghost);text-decoration:line-through;margin-left:8px;}
+.p-btn{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:2px;background:var(--crimson);color:var(--white);border:none;padding:9px 18px;text-transform:uppercase;cursor:none;transition:background 0.3s;}
+.p-btn:hover{background:#a93226;}
+.p-tag{position:absolute;top:16px;right:16px;font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:3px;background:var(--crimson);color:var(--white);padding:4px 10px;text-transform:uppercase;}
+/* 3D tilt handled by JS */
+.p-card{transform-style:preserve-3d;}
+
+/* ── CATEGORIES PAGE ── */
+.cat-grid-full{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--rim);padding:2px;}
+.cat-big{position:relative;overflow:hidden;aspect-ratio:4/3;cursor:none;}
+.cat-big:nth-child(1),.cat-big:nth-child(6){grid-column:span 2;}
+.cat-img{width:100%;height:100%;object-fit:cover;filter:brightness(0.32) saturate(0.5);transition:filter 0.7s,transform 0.9s cubic-bezier(0.16,1,0.3,1);}
+.cat-big:hover .cat-img{filter:brightness(0.55) saturate(0.8);transform:scale(1.06);}
+.cat-label{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:32px;background:linear-gradient(transparent 40%,rgba(8,9,10,0.85));}
+.cat-name{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;transition:transform 0.4s;}
+.cat-big:hover .cat-name{transform:translateY(-4px);}
+.cat-count{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;color:var(--mist);text-transform:uppercase;margin-top:6px;}
+.cat-arrow{position:absolute;top:20px;right:20px;width:34px;height:34px;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:var(--white);opacity:0;transition:opacity 0.4s;}
+.cat-big:hover .cat-arrow{opacity:1;}
+
+/* ── SERVICES PAGE ── */
+.services-grid-full{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rim);}
+.svc{background:var(--panel);padding:56px 48px;position:relative;overflow:hidden;transition:background 0.4s;}
+.svc::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--crimson);transition:width 0.5s cubic-bezier(0.16,1,0.3,1);}
+.svc:hover::after{width:100%;}
+.svc:hover{background:var(--surface);}
+.svc-num{font-family:'Cormorant Garamond',serif;font-size:4rem;font-weight:300;color:var(--rim);line-height:1;margin-bottom:4px;}
+.svc-icon{font-size:2rem;margin-bottom:20px;}
+.svc-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:1px;margin-bottom:14px;}
+/* WHITE ON RED for service title highlight */
+.svc-title .hi{background:var(--crimson);color:var(--white);padding:0 6px;}
+.svc-desc{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--mist);line-height:2;}
+
+/* ── ABOUT PAGE ── */
+.about-split{display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 72px);}
+.about-img-col{position:relative;overflow:hidden;}
+.about-img{width:100%;height:100%;object-fit:cover;filter:brightness(0.4) saturate(0.6);}
+.about-overlay{position:absolute;inset:0;background:linear-gradient(to right,transparent,rgba(8,9,10,0.3));}
+.about-content{padding:80px 6vw;display:flex;flex-direction:column;justify-content:center;}
+.about-num{font-family:'Cormorant Garamond',serif;font-size:7rem;font-weight:300;color:var(--rim);line-height:1;margin-bottom:-20px;}
+.about-h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3.8rem);font-weight:300;line-height:1.1;margin-bottom:24px;}
+.about-h2 em{font-style:italic;color:var(--crimson);}
+/* White overlay on red word */
+.about-h2 .hi{background:var(--crimson);color:var(--white);padding:0 6px;font-style:normal;}
+.about-body{font-family:'DM Mono',monospace;font-size:0.73rem;color:var(--mist);line-height:2.1;margin-bottom:32px;}
+.stats-row{display:flex;gap:40px;margin-bottom:40px;border-top:1px solid var(--rim);padding-top:32px;}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:300;color:var(--white);line-height:1;}
+.stat-l{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:3px;color:var(--mist);text-transform:uppercase;margin-top:6px;}
+
+/* ── TESTIMONIALS (inside about) ── */
+.testi-section{padding:80px 8vw;background:var(--deep);border-top:1px solid var(--rim);}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--rim);}
+.t-card{background:var(--panel);padding:44px 36px;border-top:2px solid transparent;transition:border-color 0.4s,background 0.4s;}
+.t-card:hover{border-top-color:var(--crimson);background:var(--surface);}
+.t-stars{color:var(--crimson);font-size:0.7rem;letter-spacing:4px;margin-bottom:20px;}
+.t-text{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:300;font-style:italic;line-height:1.7;color:var(--ice);margin-bottom:28px;}
+.t-person{display:flex;align-items:center;gap:14px;}
+.t-avatar{width:40px;height:40px;border-radius:50%;background:var(--crimson);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:0.7rem;font-weight:700;color:var(--white);flex-shrink:0;}
+.t-name{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:1px;}
+.t-role{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:2px;color:var(--mist);text-transform:uppercase;margin-top:4px;}
+
+/* FOOTER */
+footer{background:var(--deep);border-top:1px solid var(--rim);padding:60px 8vw 36px;}
+.footer-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap;margin-bottom:48px;}
+.footer-logo{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:6px;color:var(--white);margin-bottom:12px;display:block;}
+.footer-logo span{color:var(--crimson);}
+.footer-tag{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.9rem;color:var(--mist);max-width:240px;line-height:1.7;}
+.footer-col h5{font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--white);margin-bottom:20px;}
+.footer-col ul{list-style:none;}
+.footer-col li{margin-bottom:12px;}
+.footer-col a{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--mist);text-decoration:none;transition:color 0.3s;letter-spacing:0.5px;}
+.footer-col a:hover{color:var(--white);}
+.footer-bottom{border-top:1px solid var(--rim);padding-top:28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--ghost);letter-spacing:1px;}
+.footer-socials{display:flex;gap:20px;}
+.social{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:2px;color:var(--ghost);text-decoration:none;text-transform:uppercase;transition:color 0.3s;padding-bottom:2px;border-bottom:1px solid transparent;}
+.social:hover{color:var(--crimson);border-bottom-color:var(--crimson);}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1);}
+.reveal.visible{opacity:1;transform:none;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--ink);}
+::-webkit-scrollbar-thumb{background:var(--ghost);}
+::-webkit-scrollbar-thumb:hover{background:var(--crimson);}
+
+@media(max-width:900px){
+  .globe-wrap{width:340px;height:340px;right:-60px;}
+  .about-split{grid-template-columns:1fr;}
+  .about-img-col{height:40vh;}
+  .services-grid-full{grid-template-columns:1fr;}
+  .testi-grid{grid-template-columns:1fr;}
+  .cat-grid-full{grid-template-columns:1fr 1fr;}
+  .cat-big:nth-child(1),.cat-big:nth-child(6){grid-column:span 2;}
+  .product-grid{grid-template-columns:1fr 1fr;}
+  nav{padding:0 20px;}
+  .nav-links{gap:2px;}
+  .nav-links button{padding:8px 10px;font-size:0.58rem;}
+}
+@media(max-width:600px){
+  .globe-wrap{display:none;}
+  .product-grid{grid-template-columns:1fr;}
+  .cat-grid-full{grid-template-columns:1fr;}
+  .cat-big:nth-child(1),.cat-big:nth-child(6){grid-column:span 1;}
+  .testi-grid{grid-template-columns:1fr;}
+  .services-grid-full{grid-template-columns:1fr;}
+  .footer-inner{flex-direction:column;}
+  .stats-row{flex-wrap:wrap;gap:24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showPage('home');return false;">PRI<span>.</span>COMP</a>
+  <ul class="nav-links">
+    <li><button onclick="showPage('home')" id="btn-home" class="active">Home</button></li>
+    <li><button onclick="showPage('products')" id="btn-products">Products</button></li>
+    <li><button onclick="showPage('categories')" id="btn-categories">Catalogue</button></li>
+    <li><button onclick="showPage('services')" id="btn-services">Services</button></li>
+    <li><button onclick="showPage('about')" id="btn-about">About</button></li>
+  </ul>
+  <a class="nav-btn" href="#" onclick="showPage('products');return false;">Shop Now</a>
+</nav>
+
+<!-- ══════════ HOME PAGE ══════════ -->
+<div class="page active" id="page-home">
+
+  <section class="hero">
+    <!-- ROTATING GLOBE -->
+    <div class="globe-wrap">
+      <div class="globe-ring2"></div>
+      <div class="globe-ring"></div>
+      <div class="globe">
+        <div class="globe-dots" id="globeDots"></div>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">South Africa's Premier Tech Destination</div>
+      <h1 class="hero-h1">
+        The<br/>
+        <em>Architecture</em><br/>
+        of <span class="hi-red">Power.</span>
+      </h1>
+      <p class="hero-sub">
+        We don't sell computers.<br/>
+        We engineer the instruments<br/>
+        through which empires are built.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="btn-red" onclick="showPage('products');return false;">Explore Collection</a>
+        <a href="#" class="btn-ghost" onclick="showPage('services');return false;">Our Services</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <span class="marquee-item">Apple</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Dell</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Lenovo</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">ASUS</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">HP</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Razer</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Microsoft</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Samsung</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Intel</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">NVIDIA</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Apple</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Dell</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Lenovo</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">ASUS</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">HP</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Razer</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Microsoft</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Samsung</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">Intel</span><span class="marquee-dot"> · </span>
+      <span class="marquee-item">NVIDIA</span><span class="marquee-dot"> · </span>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rim);border-top:1px solid var(--rim);">
+    <div onclick="showPage('products')" style="background:var(--panel);padding:40px 32px;cursor:none;transition:background 0.3s;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background='var(--panel)'">
+      <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:var(--crimson);text-transform:uppercase;margin-bottom:12px;">50,000+</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;">Products →</div>
+    </div>
+    <div onclick="showPage('categories')" style="background:var(--panel);padding:40px 32px;cursor:none;transition:background 0.3s;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background='var(--panel)'">
+      <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:var(--crimson);text-transform:uppercase;margin-bottom:12px;">8 Categories</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;">Catalogue →</div>
+    </div>
+    <div onclick="showPage('services')" style="background:var(--panel);padding:40px 32px;cursor:none;transition:background 0.3s;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background='var(--panel)'">
+      <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:var(--crimson);text-transform:uppercase;margin-bottom:12px;">Expert Care</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;">Services →</div>
+    </div>
+    <div onclick="showPage('about')" style="background:var(--panel);padding:40px 32px;cursor:none;transition:background 0.3s;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background='var(--panel)'">
+      <div style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:4px;color:var(--crimson);text-transform:uppercase;margin-bottom:12px;">Est. 2012</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;">Our Story →</div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <p class="footer-copy">© 2026 PRICOMP. South Africa's premier technology destination.</p>
+      <div class="footer-socials">
+        <a class="social" href="#">Instagram</a>
+        <a class="social" href="#">LinkedIn</a>
+        <a class="social" href="#">X</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════ PRODUCTS PAGE ══════════ -->
+<div class="page" id="page-products">
+  <div class="page-hero">
+    <div class="page-eyebrow">Curated Selection</div>
+    <h1 class="page-title">Premium <span class="hi">Instruments</span> of Work</h1>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterProducts(this,'all')">All</button>
+    <button class="filter-btn" onclick="filterProducts(this,'laptop')">Laptops</button>
+    <button class="filter-btn" onclick="filterProducts(this,'desktop')">Desktops</button>
+    <button class="filter-btn" onclick="filterProducts(this,'gaming')">Gaming</button>
+    <button class="filter-btn" onclick="filterProducts(this,'accessory')">Accessories</button>
+  </div>
+  <div class="product-grid" id="productGrid">
+
+    <div class="p-card reveal" data-cat="laptop">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&q=80&auto=format&fit=crop&crop=center" alt="MacBook Pro"/>
+      <div class="p-card-body">
+        <div class="p-brand">Apple</div>
+        <div class="p-name">MacBook Pro 16" M3 Max</div>
+        <div class="p-spec">M3 Max · 36GB RAM · 1TB SSD · Liquid Retina XDR</div>
+        <div class="p-footer"><div><span class="p-price">R89,999</span><span class="p-old">R99,999</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+      <div class="p-tag">Bestseller</div>
+    </div>
+
+    <div class="p-card reveal" data-cat="desktop">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=700&q=80&auto=format&fit=crop&crop=center" alt="Desktop PC"/>
+      <div class="p-card-body">
+        <div class="p-brand">PRICOMP Custom</div>
+        <div class="p-name">Titan Workstation Pro</div>
+        <div class="p-spec">Ryzen 9 7950X · 128GB DDR5 · RTX 4090 · 4TB NVMe</div>
+        <div class="p-footer"><div><span class="p-price">R142,000</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+      <div class="p-tag">New</div>
+    </div>
+
+    <div class="p-card reveal" data-cat="laptop">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=700&q=80&auto=format&fit=crop&crop=center" alt="Lenovo ThinkPad"/>
+      <div class="p-card-body">
+        <div class="p-brand">Lenovo</div>
+        <div class="p-name">ThinkPad X1 Carbon Gen 12</div>
+        <div class="p-spec">Intel Ultra 7 · 32GB · 1TB · 14" 2.8K OLED</div>
+        <div class="p-footer"><div><span class="p-price">R52,999</span><span class="p-old">R59,000</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+    </div>
+
+    <div class="p-card reveal" data-cat="gaming">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=700&q=80&auto=format&fit=crop&crop=center" alt="Gaming setup"/>
+      <div class="p-card-body">
+        <div class="p-brand">Razer</div>
+        <div class="p-name">Blade 18 RTX 4090</div>
+        <div class="p-spec">i9-14900HX · RTX 4090 · 32GB · 18" QHD+ 300Hz</div>
+        <div class="p-footer"><div><span class="p-price">R98,000</span><span class="p-old">R115,000</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+      <div class="p-tag">Sale</div>
+    </div>
+
+    <div class="p-card reveal" data-cat="laptop">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=700&q=80&auto=format&fit=crop&crop=center" alt="Dell XPS"/>
+      <div class="p-card-body">
+        <div class="p-brand">Dell</div>
+        <div class="p-name">XPS 15 OLED Ultra</div>
+        <div class="p-spec">Intel Core Ultra 9 · 64GB · 2TB · 15.6" OLED Touch</div>
+        <div class="p-footer"><div><span class="p-price">R67,500</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+    </div>
+
+    <div class="p-card reveal" data-cat="accessory">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=700&q=80&auto=format&fit=crop&crop=center" alt="Mechanical keyboard"/>
+      <div class="p-card-body">
+        <div class="p-brand">Logitech</div>
+        <div class="p-name">MX Keys S Pro Keyboard</div>
+        <div class="p-spec">Backlit · Multi-device · USB-C · Logi Bolt</div>
+        <div class="p-footer"><div><span class="p-price">R3,299</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+    </div>
+
+    <div class="p-card reveal" data-cat="desktop">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1593640408182-31c228c0f0e1?w=700&q=80&auto=format&fit=crop&crop=center" alt="Gaming desktop"/>
+      <div class="p-card-body">
+        <div class="p-brand">ASUS ROG</div>
+        <div class="p-name">ROG Strix GT35 Desktop</div>
+        <div class="p-spec">Core i9-13900K · RTX 4080 · 64GB · 2TB SSD</div>
+        <div class="p-footer"><div><span class="p-price">R88,000</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+      <div class="p-tag">Hot</div>
+    </div>
+
+    <div class="p-card reveal" data-cat="gaming">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1615655406736-b37892a9f9a4?w=700&q=80&auto=format&fit=crop&crop=center" alt="Gaming monitor"/>
+      <div class="p-card-body">
+        <div class="p-brand">Samsung</div>
+        <div class="p-name">Odyssey G9 49" Monitor</div>
+        <div class="p-spec">Dual QHD · 240Hz · 1ms · HDR1000 · Curved</div>
+        <div class="p-footer"><div><span class="p-price">R28,500</span><span class="p-old">R34,000</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+    </div>
+
+    <div class="p-card reveal" data-cat="accessory">
+      <img class="p-card-img" src="https://images.unsplash.com/photo-1583394293214-0d0f2b23c8ee?w=700&q=80&auto=format&fit=crop&crop=center" alt="Headphones"/>
+      <div class="p-card-body">
+        <div class="p-brand">Sony</div>
+        <div class="p-name">WH-1000XM5 Headphones</div>
+        <div class="p-spec">Industry-best ANC · 30hr battery · Hi-Res Audio</div>
+        <div class="p-footer"><div><span class="p-price">R6,999</span><span class="p-old">R8,500</span></div><button class="p-btn">Add to Cart</button></div>
+      </div>
+    </div>
+
+  </div>
+  <footer>
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <p class="footer-copy">© 2026 PRICOMP. All rights reserved.</p>
+      <div class="footer-socials"><a class="social" href="#">Instagram</a><a class="social" href="#">LinkedIn</a><a class="social" href="#">X</a></div>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════ CATEGORIES PAGE ══════════ -->
+<div class="page" id="page-categories">
+  <div class="page-hero reveal">
+    <div class="page-eyebrow">Full Catalogue</div>
+    <h1 class="page-title">Everything.<br/><span class="hi">Under One Roof.</span></h1>
+  </div>
+  <div class="cat-grid-full">
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1000&q=80&auto=format&fit=crop&crop=center" alt="Laptops"/>
+      <div class="cat-label"><div class="cat-name">Laptops</div><div class="cat-count">1,200+ models</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=700&q=80&auto=format&fit=crop&crop=center" alt="Desktops"/>
+      <div class="cat-label"><div class="cat-name">Desktops</div><div class="cat-count">840+ models</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1612198188060-c7c2a3b66eae?w=700&q=80&auto=format&fit=crop&crop=center" alt="Components"/>
+      <div class="cat-label"><div class="cat-name">Components</div><div class="cat-count">10,000+ parts</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=700&q=80&auto=format&fit=crop&crop=center" alt="Gaming"/>
+      <div class="cat-label"><div class="cat-name">Gaming</div><div class="cat-count">2,100+ products</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=700&q=80&auto=format&fit=crop&crop=center" alt="Tablets"/>
+      <div class="cat-label"><div class="cat-name">Tablets & Phones</div><div class="cat-count">680+ models</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+    <div class="cat-big reveal">
+      <img class="cat-img" src="https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=1000&q=80&auto=format&fit=crop&crop=center" alt="Accessories"/>
+      <div class="cat-label"><div class="cat-name">Accessories</div><div class="cat-count">5,000+ items</div></div>
+      <div class="cat-arrow">→</div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <p class="footer-copy">© 2026 PRICOMP. All rights reserved.</p>
+      <div class="footer-socials"><a class="social" href="#">Instagram</a><a class="social" href="#">LinkedIn</a><a class="social" href="#">X</a></div>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════ SERVICES PAGE ══════════ -->
+<div class="page" id="page-services">
+  <div class="page-hero reveal">
+    <div class="page-eyebrow">What We Offer</div>
+    <h1 class="page-title">Beyond the <span class="hi">Transaction.</span></h1>
+  </div>
+  <div class="services-grid-full">
+    <div class="svc reveal">
+      <div class="svc-num">01</div>
+      <div class="svc-icon">⚙️</div>
+      <div class="svc-title">Custom <span class="hi">Builds</span></div>
+      <p class="svc-desc">We engineer workstations, gaming rigs, and server systems to your exact specifications. No compromises. Every component hand-picked for peak performance.</p>
+    </div>
+    <div class="svc reveal">
+      <div class="svc-num">02</div>
+      <div class="svc-icon">🔧</div>
+      <div class="svc-title">Repair & <span class="hi">Diagnostics</span></div>
+      <p class="svc-desc">Expert technicians. Same-day diagnostics. Hardware and software restoration guaranteed. We fix what others claim is unfixable.</p>
+    </div>
+    <div class="svc reveal">
+      <div class="svc-num">03</div>
+      <div class="svc-icon">🏢</div>
+      <div class="svc-title">Corporate <span class="hi">Solutions</span></div>
+      <p class="svc-desc">Bulk procurement, IT infrastructure design, and dedicated account management. We build the digital backbone of serious businesses.</p>
+    </div>
+    <div class="svc reveal">
+      <div class="svc-num">04</div>
+      <div class="svc-icon">☁️</div>
+      <div class="svc-title">Cloud & <span class="hi">Networking</span></div>
+      <p class="svc-desc">From office Wi-Fi setups to enterprise cloud migrations — full-stack connectivity solutions handled end-to-end with zero downtime.</p>
+    </div>
+    <div class="svc reveal">
+      <div class="svc-num">05</div>
+      <div class="svc-icon">🚚</div>
+      <div class="svc-title">Nationwide <span class="hi">Delivery</span></div>
+      <p class="svc-desc">Secure, tracked delivery across all of South Africa. Express options available. Your order arrives protected and on time, guaranteed.</p>
+    </div>
+    <div class="svc reveal">
+      <div class="svc-num">06</div>
+      <div class="svc-icon">🛡️</div>
+      <div class="svc-title">Extended <span class="hi">Warranty</span></div>
+      <p class="svc-desc">Optional multi-year protection plans with on-site support. Your investment, fully covered. Peace of mind, professionally delivered.</p>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-bottom" style="border-top:none;padding-top:0;">
+      <p class="footer-copy">© 2026 PRICOMP. All rights reserved.</p>
+      <div class="footer-socials"><a class="social" href="#">Instagram</a><a class="social" href="#">LinkedIn</a><a class="social" href="#">X</a></div>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════ ABOUT PAGE ══════════ -->
+<div class="page" id="page-about">
+  <div class="about-split">
+    <div class="about-img-col">
+      <img class="about-img" src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=900&q=80&auto=format&fit=crop&crop=center" alt="Technology"/>
+      <div class="about-overlay"></div>
+    </div>
+    <div class="about-content">
+      <div class="about-num reveal">12</div>
+      <h2 class="about-h2 reveal">Years of<br/><em>Uncompromising</em><br/><span class="hi">Excellence.</span></h2>
+      <p class="about-body reveal">
+        PRICOMP was founded in 2012 on a single conviction: the tools you use define the results you achieve. We built this company for people who refuse to accept average — and we've never looked back.<br/><br/>
+        From a single Cape Town storefront to South Africa's most trusted technology destination, every product we carry has passed one question: does this perform at the level our clients deserve?
+      </p>
+      <div class="stats-row reveal">
+        <div><div class="stat-n">200K+</div><div class="stat-l">Clients Served</div></div>
+        <div><div class="stat-n">50K+</div><div class="stat-l">Products</div></div>
+        <div><div class="stat-n">98%</div><div class="stat-l">Satisfaction</div></div>
+      </div>
+      <a href="#" class="btn-red reveal" onclick="showPage('products');return false;">Browse Collection</a>
+    </div>
+  </div>
+
+  <div class="testi-section">
+    <div class="page-eyebrow reveal" style="margin-bottom:12px;">What Clients Say</div>
+    <h2 class="page-title reveal" style="margin-bottom:48px;">Trusted. <span class="hi">Unanimously.</span></h2>
+    <div class="testi-grid">
+      <div class="t-card reveal">
+        <div class="t-stars">★ ★ ★ ★ ★</div>
+        <p class="t-text">"PRICOMP built our entire studio infrastructure. The machines they specced have been flawless for three years. I wouldn't trust anyone else."</p>
+        <div class="t-person">
+          <div class="t-avatar">HD</div>
+          <div><div class="t-name">Hannah Davids</div><div class="t-role">Creative Director, Cape Town</div></div>
+        </div>
+      </div>
+      <div class="t-card reveal">
+        <div class="t-stars">★ ★ ★ ★ ★</div>
+        <p class="t-text">"Ordered a custom workstation. Arrived in 48 hours, built to perfection. The attention to detail is unlike anything I've experienced."</p>
+        <div class="t-person">
+          <div class="t-avatar">KM</div>
+          <div><div class="t-name">Kagiso Motsepe</div><div class="t-role">Lead Engineer, Johannesburg</div></div>
+        </div>
+      </div>
+      <div class="t-card reveal">
+        <div class="t-stars">★ ★ ★ ★ ★</div>
+        <p class="t-text">"As a student who needed real power, PRICOMP actually listened. They found exactly what I needed at a price that made sense. Lifelong customer."</p>
+        <div class="t-person">
+          <div class="t-avatar">ND</div>
+          <div><div class="t-name">Nomsa Dlamini</div><div class="t-role">CS Student, UCT</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <span class="footer-logo">PRI<span>.</span>COMP</span>
+        <p class="footer-tag">"The architecture of power — built for those who refuse to be ordinary."</p>
+      </div>
+      <div class="footer-col">
+        <h5>Navigate</h5>
+        <ul>
+          <li><a href="#" onclick="showPage('home');return false;">Home</a></li>
+          <li><a href="#" onclick="showPage('products');return false;">Products</a></li>
+          <li><a href="#" onclick="showPage('categories');return false;">Catalogue</a></li>
+          <li><a href="#" onclick="showPage('services');return false;">Services</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Contact</h5>
+        <ul>
+          <li><a href="#">info@pricomp.co.za</a></li>
+          <li><a href="#">+27 21 000 0000</a></li>
+          <li><a href="#">Cape Town, SA</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 PRICOMP. All rights reserved. South Africa's premier technology destination.</p>
+      <div class="footer-socials">
+        <a class="social" href="#">Instagram</a>
+        <a class="social" href="#">LinkedIn</a>
+        <a class="social" href="#">X</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+// ── CURSOR
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function lerp(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(lerp);})();
+document.addEventListener('mouseover',e=>{
+  if(e.target.matches('a,button,.p-card,.cat-big,.svc,[onclick]')){
+    cur.style.width='18px';cur.style.height='18px';
+    ring.style.width='56px';ring.style.height='56px';
+  } else {
+    cur.style.width='10px';cur.style.height='10px';
+    ring.style.width='36px';ring.style.height='36px';
+  }
+});
+
+// ── PAGE NAVIGATION
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-links button').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('btn-'+id);
+  if(btn)btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'instant'});
+  setTimeout(initReveals,50);
+}
+
+// ── REVEAL ON SCROLL
+function initReveals(){
+  const items=document.querySelectorAll('.page.active .reveal:not(.visible)');
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
+    });
+  },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+  items.forEach((r,i)=>{r.style.transitionDelay=(i*0.06)+'s';obs.observe(r);});
+}
+initReveals();
+
+// ── 3D TILT ON PRODUCT CARDS
+document.querySelectorAll('.p-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=((e.clientX-r.left)/r.width-0.5)*14;
+    const y=((e.clientY-r.top)/r.height-0.5)*-14;
+    card.style.transform=`perspective(700px) rotateY(${x}deg) rotateX(${y}deg) scale(1.02)`;
+    card.style.zIndex='10';
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.style.transform='';card.style.zIndex='';
+  });
+});
+
+// ── FILTER PRODUCTS
+function filterProducts(btn,cat){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.p-card').forEach(card=>{
+    const show=cat==='all'||card.dataset.cat===cat;
+    card.style.display=show?'block':'none';
+  });
+}
+
+// ── GLOBE DOTS
+const globeEl=document.getElementById('globeDots');
+for(let i=0;i<14;i++){
+  const d=document.createElement('div');
+  d.className='gdot';
+  const size=Math.random()*5+2;
+  d.style.cssText=`
+    width:${size}px;height:${size}px;
+    top:${Math.random()*80+10}%;
+    left:${Math.random()*80+10}%;
+    animation-delay:${Math.random()*3}s;
+    animation-duration:${2+Math.random()*2}s;
+  `;
+  globeEl.appendChild(d);
+}
+</script>
+</body>
+</html>
